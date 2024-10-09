@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Temp files:
+.idea
+krs_spolki_2years.csv
+
 # Distribution / packaging
 .Python
 build/
