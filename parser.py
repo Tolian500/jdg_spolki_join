@@ -9,7 +9,7 @@ import os
 from sql_manager import write_contacts
 
 # test_krs_list = ['0000398281', '0000573610', '0000735160']
-test_krs_list = ['0000470010']
+test_krs_list = ['0001038309']
 
 
 def get_pdf_files():
@@ -30,10 +30,16 @@ def parse_pdf():
         krs = f"{element.split("_")[3][:10]}"
         print(f"Krs: {krs}")
         text = extract_text(element, laparams=LAParams())
-        x = [m.start() for m in re.finditer('Nazwisko', text)]
+        try:
+            x = [m.start() for m in re.finditer('Nazwisko', text)]
+            print("X was found")
+        except Exception as e:
+            print(f"Error with parsing pdf: {e}")
+            return None
         # print(x)
         repress = None
         contacts_list = []
+        print("Start parsing")
         for index in x:
             try:
                 repress = text[index:].split("\n")[16] == "5.Funkcja w organie"
@@ -45,24 +51,31 @@ def parse_pdf():
                 role = "repr"
             if repress is False:
                 role = "udzial"
-            # print(f"Role: {role}")
-            # print(text[index:].split("\n"))
-            last_name = text[index:].split("\n")[2]
-            # print(f'Last name: {last_name}')
-            first_name = text[index:].split("\n")[6].split()[0]
-            # print(f"First name: {first_name}")
+            try:
+                last_name = text[index:].split("\n")[2]
+            except IndexError:
+                # Skip iteration if no last name
+                continue
+            try:
+                first_name = text[index:].split("\n")[6].split()[0]
+            except IndexError:
+                # Skip iteration if no last name
+                continue
             try:
                 middle_name = text[index:].split("\n")[6].split()[1]
             except IndexError:
+                print("Error with middle name")
                 middle_name = None
             # print(f'Middle name: {middle_name}')
             try:
                 pesel = text[index:].split("\n")[10].split()[0][:-1]
             except IndexError:
+                print("Error with middle pessel")
                 pesel = None
             # print(f"Pesel: {pesel}")
             # print("---\n")
             contacts_list.append([krs, pesel, first_name, middle_name, last_name, role])
+        print("Parsing done successfully")
         return contacts_list
 
 
@@ -82,5 +95,5 @@ def main(krs_list: list, return_contacts: bool = False):
         print("Returning contacts")
         return all_contacts
 
-# if __name__ == "__main__":
-#     main(test_krs_list)
+if __name__ == "__main__":
+    main(test_krs_list)

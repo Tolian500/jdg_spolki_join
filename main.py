@@ -1,10 +1,10 @@
-import csv
 import os
 import time
-import pandas
 import pandas as pd
 import psycopg2  # Import PostgreSQL library
 import parser
+import asyncio
+from discord_manager import send_message as discord_send_message
 
 # Specify the path to your CSV file
 file_path = 'krs_spolki_2years.csv'
@@ -15,7 +15,7 @@ connection_string = os.environ['SQL_CONTACTS_BOT']
 COUNT_LIMIT = 5
 
 
-def clear_and_resave(dataframe: pandas.DataFrame):
+def clear_and_resave(dataframe: pd.DataFrame):
     # Remove the first row from the DataFrame
     dataframe = dataframe.iloc[1:]
 
@@ -131,14 +131,21 @@ def main():
     # Check if the DataFrame is not empty
     if not df.empty:
         count = 0
+        success_count = 0
         start_time = time.time()
         while True:
             if count == COUNT_LIMIT:
                 # Send discord, update count
-                count = 0
                 end_time = time.time()
-                print(f"Time spend for {COUNT_LIMIT} elements: {start_time - end_time} s.")
+                message = (f"👩‍💼✉️ JPG_SPOŁKI_JOIN: Time spend for {COUNT_LIMIT} elements: {int(end_time-start_time)} s."
+                           f" Success = {success_count}/{count}, seconds per success = {success_count/end_time-start_time}s.")
+                print(message)
+                asyncio.run(discord_send_message(message=message, silent=True))
+                # Restarting counters and timers
                 start_time = time.time()
+                count = 0
+                success_count = 0
+
             try:
                 count += 1
                 # Read the first value
@@ -157,17 +164,17 @@ def main():
                 print("Contacts found. Try find FUll contacts")
                 # Assume full_contacts is already defined and contains the tuples
                 full_contacts = find_additional_contacts(unique_all_names)
-
+                if full_contacts is None:
+                    print("♻️ No full contacts (mail) found. Clearing and starting new round")
+                    df = clear_and_resave(df)  # Clear in the future
+                    continue  # Break in the future
                 # Add curr_krs to each tuple in full_contacts
                 formatted_full_contacts = [(curr_krs,) + item for item in full_contacts]
                 print(f"Formated contacts: {formatted_full_contacts}")
-                if formatted_full_contacts is None:
-                    print("♻️ Full contacts matches is none. Clearing and starting new round")
-                    df = clear_and_resave(df)  # Clear in the future
-                    continue  # Break in the future
                 save_contacts_to_db(formatted_full_contacts)
                 df = clear_and_resave(df)  # Clear in the future
                 print("🟩 SUCCESS! Saving results. Clearing and starting new round")
+                success_count += 1
             except Exception as e:
                 print(e)
 
