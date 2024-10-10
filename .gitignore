@@ -9,6 +9,7 @@ __pycache__/
 # Temp files:
 .idea
 krs_spolki_2years.csv
+geckodriver
 
 # Distribution / packaging
 .Python

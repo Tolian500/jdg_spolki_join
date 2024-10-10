@@ -4,6 +4,7 @@ import time
 import pandas
 import pandas as pd
 import psycopg2  # Import PostgreSQL library
+import parser
 
 # Specify the path to your CSV file
 file_path = 'krs_spolki_2years.csv'
@@ -13,12 +14,14 @@ connection_string = os.environ['SQL_CONTACTS_BOT']
 
 COUNT_LIMIT = 5
 
+
 def clear_and_resave(dataframe: pandas.DataFrame):
     # Remove the first row from the DataFrame
     dataframe = dataframe.iloc[1:]
 
     # Save the updated DataFrame back to the CSV file
     dataframe.to_csv(file_path, index=False)
+    return dataframe
 
 
 def find_contacts_for_krs(krs):
@@ -51,8 +54,8 @@ def find_additional_contacts(contacts):
     query_parts = []
     unique_contacts = set()  # To track unique contacts
     for contact in contacts:
-        first_name = contact[4]
-        last_name = contact[6]
+        first_name = contact[0].lower() if contact[0] else None  # Convert to lowercase
+        last_name = contact[1].lower() if contact[1] else None  # Convert to lowercase
         if first_name and last_name:  # Ensure no None values
             contact_key = (first_name, last_name)  # Create a unique key for each contact
             if contact_key not in unique_contacts:  # Check for duplicates
@@ -65,17 +68,18 @@ def find_additional_contacts(contacts):
     # Create a string from the contact pairs
     contacts_str = ', '.join(query_parts)
     print(len(contacts_str))
-    # Define the new query
+
+    # Define the new query, using LOWER() on both sides for case insensitivity
     new_query = f"""
     SELECT f.nazwisko, f.imie, f.email, p.krs, p.first_name, p.last_name 
     FROM main_data.firma_nd_email f 
     JOIN extra.persons p 
-    ON (f.imie ILIKE (LEFT(p.first_name, 1) || '%')  
-    AND f.nazwisko ILIKE (LEFT(p.last_name, 1) || '%')  
+    ON (LOWER(f.imie) ILIKE (LOWER(LEFT(p.first_name, 1) || '%'))  
+    AND LOWER(f.nazwisko) ILIKE (LOWER(LEFT(p.last_name, 1) || '%'))  
     AND LENGTH(f.imie) = (LENGTH(p.first_name) + LENGTH(REPLACE(p.first_name, '*', '')) - 1)  
     AND LENGTH(f.nazwisko) = (LENGTH(p.last_name) + LENGTH(REPLACE(p.last_name, '*', '')) - 1)
     )  -- Close the ON clause here
-    WHERE (p.first_name, p.last_name) IN ({contacts_str});
+    WHERE (LOWER(p.first_name), LOWER(p.last_name)) IN ({contacts_str});
     """
 
     # Execute the new query
@@ -89,7 +93,7 @@ def find_additional_contacts(contacts):
     conn.close()  # Close the connection
 
     if len(results) == 0:
-        print("Contacts matching while join tables was found")
+        print("🟠 Not found contacts matching while join tables")
         return None
 
     # Filter out duplicates from the results
@@ -140,6 +144,7 @@ def save_contacts_to_db(full_contacts):
 
     print(f"Inserted {len(full_contacts)} contacts into the database.")
 
+
 def main():
     # Load the CSV file into a DataFrame
     df = pd.read_csv(file_path, dtype={'krs': str})  # Ensure 'krs' is read as string
@@ -152,27 +157,33 @@ def main():
                 # Send discord, update count
                 count = 0
                 end_time = time.time()
-                print(f"Time spend for {COUNT_LIMIT} elements: {start_time-end_time} s.")
+                print(f"Time spend for {COUNT_LIMIT} elements: {start_time - end_time} s.")
                 start_time = time.time()
             try:
                 count += 1
                 # Read the first value
                 curr_krs = df.iloc[0]['krs']
                 print(f"Processing value: {curr_krs}")
-                contacts = find_contacts_for_krs(curr_krs)
-                if contacts is None:
-                    print("Contacts is none")
-                    clear_and_resave(df)  # Clear in the future
+                all_contacts_list = parser.main(curr_krs, return_contacts=True)
+                print(f"All contacts: {all_contacts_list}")
+                all_names_list = [[item[2], item[4], item[1]] for item in all_contacts_list]
+                # Convert inner lists to tuples and then use a set
+                unique_all_names = set(tuple(contact) for contact in all_names_list)
+                print(f"All unique names: {unique_all_names}")
+                if unique_all_names is None:
+                    print("♻️ Contacts is none. Clearing and starting new round")
+                    df = clear_and_resave(df)  # Clear in the future
                     continue
                 print("Contacts found. Try fined FUll contacts")
                 # Use the contacts for another query
-                full_contacts = find_additional_contacts(contacts)
+                full_contacts = find_additional_contacts(unique_all_names)
                 if full_contacts is None:
-                    print("Full contacts is none")
-                    clear_and_resave(df)  # Clear in the future
+                    print("♻️ Full contacts matches is none. Clearing and starting new round")
+                    df = clear_and_resave(df)  # Clear in the future
                     continue  # Break in the future
                 save_contacts_to_db(full_contacts)
-                clear_and_resave(df)  # Clear in the future
+                df = clear_and_resave(df)  # Clear in the future
+                print("🟩 SUCESS! Saving results. Clearing and starting new round")
             except Exception as e:
                 print(e)
 

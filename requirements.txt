@@ -1,0 +1,8 @@
+pdfminer.six==20240706
+selenium~=4.23.1
+webdriver_manager==4.0.2
+PyPDF2~=3.0.1
+
+asyncio~=3.4.3
+discord_manager~=0.1
+SQLAlchemy~=2.0.25
