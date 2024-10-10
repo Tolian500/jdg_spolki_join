@@ -12,7 +12,7 @@ file_path = 'krs_spolki_2years.csv'
 # Connection string
 connection_string = os.environ['SQL_CONTACTS_BOT']
 
-COUNT_LIMIT = 5
+COUNT_LIMIT = 500 # Around every 20 minutes
 
 
 def clear_and_resave(dataframe: pd.DataFrame):
@@ -125,64 +125,57 @@ def save_contacts_to_db(full_contacts):
     print(f"Inserted {len(full_contacts)} contacts into the database.")
 
 
-def main():
+async def process_krs(df):
+    count = 0
+    success_count = 0
+    start_time = time.time()
+    while True:
+        if count == COUNT_LIMIT:
+            end_time = time.time()
+            message = (f"👩‍💼✉️ JPG_SPOŁKI_JOIN: Time spent for {COUNT_LIMIT} elements: {int(end_time - start_time)} s."
+                       f" Success = {success_count}/{count}\n"
+                       f"⚙️ Seconds per success = {(end_time - start_time) / success_count:.2f}s.")
+            print(message)
+            await discord_send_message(message=message, silent=True)
+            # Restart counters and timers
+            start_time = time.time()
+            count = 0
+            success_count = 0
+
+        try:
+            count += 1
+            curr_krs = df.iloc[0]['krs']
+            print(f"Processing value: {curr_krs}")
+            all_contacts_list = parser.main(curr_krs, return_contacts=True)
+            all_names_list = [[item[2], item[4], item[1]] for item in all_contacts_list]
+            unique_all_names = set(tuple(contact) for contact in all_names_list)
+            if unique_all_names is None:
+                print("♻️ Contacts is none. Clearing and starting new round")
+                df = clear_and_resave(df)
+                continue
+            full_contacts = find_additional_contacts(unique_all_names)
+            if full_contacts is None:
+                print("♻️ No full contacts (mail) found. Clearing and starting new round")
+                df = clear_and_resave(df)
+                continue
+            formatted_full_contacts = [(curr_krs,) + item for item in full_contacts]
+            save_contacts_to_db(formatted_full_contacts)
+            df = clear_and_resave(df)
+            print("🟩 SUCCESS! Saving results. Clearing and starting new round")
+            success_count += 1
+        except Exception as e:
+            print(e)
+
+
+async def main_async():
     # Load the CSV file into a DataFrame
-    df = pd.read_csv(file_path, dtype={'krs': str})  # Ensure 'krs' is read as string
-    # Check if the DataFrame is not empty
+    df = pd.read_csv(file_path, dtype={'krs': str})
     if not df.empty:
-        count = 0
-        success_count = 0
-        start_time = time.time()
-        while True:
-            if count == COUNT_LIMIT:
-                # Send discord, update count
-                end_time = time.time()
-                message = (f"👩‍💼✉️ JPG_SPOŁKI_JOIN: Time spend for {COUNT_LIMIT} elements: {int(end_time-start_time)} s."
-                           f" Success = {success_count}/{count}, seconds per success = {success_count/end_time-start_time}s.")
-                print(message)
-                asyncio.run(discord_send_message(message=message, silent=True))
-                # Restarting counters and timers
-                start_time = time.time()
-                count = 0
-                success_count = 0
-
-            try:
-                count += 1
-                # Read the first value
-                curr_krs = df.iloc[0]['krs']
-                print(f"Processing value: {curr_krs}")
-                all_contacts_list = parser.main(curr_krs, return_contacts=True)
-                print(f"All contacts: {all_contacts_list}")
-                all_names_list = [[item[2], item[4], item[1]] for item in all_contacts_list]
-                # Convert inner lists to tuples and then use a set
-                unique_all_names = set(tuple(contact) for contact in all_names_list)
-                print(f"All unique names: {unique_all_names}")
-                if unique_all_names is None:
-                    print("♻️ Contacts is none. Clearing and starting new round")
-                    df = clear_and_resave(df)  # Clear in the future
-                    continue
-                print("Contacts found. Try find FUll contacts")
-                # Assume full_contacts is already defined and contains the tuples
-                full_contacts = find_additional_contacts(unique_all_names)
-                if full_contacts is None:
-                    print("♻️ No full contacts (mail) found. Clearing and starting new round")
-                    df = clear_and_resave(df)  # Clear in the future
-                    continue  # Break in the future
-                # Add curr_krs to each tuple in full_contacts
-                formatted_full_contacts = [(curr_krs,) + item for item in full_contacts]
-                print(f"Formated contacts: {formatted_full_contacts}")
-                save_contacts_to_db(formatted_full_contacts)
-                df = clear_and_resave(df)  # Clear in the future
-                print("🟩 SUCCESS! Saving results. Clearing and starting new round")
-                success_count += 1
-            except Exception as e:
-                print(e)
-
-        print("First value processed and row deleted.")
+        await process_krs(df)
     else:
         print("All values have been processed. Exiting.")
-        # SEND DISCORD NOTIF
+        await discord_send_message(message="All KRS entries have been processed.", silent=True)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_async())
