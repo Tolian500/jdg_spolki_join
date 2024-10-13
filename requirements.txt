@@ -4,7 +4,5 @@ webdriver_manager==4.0.2
 PyPDF2~=3.0.1
 
 asyncio~=3.4.3
-discord_manager~=0.1
 SQLAlchemy~=2.0.25
 pandas~=2.2.2
-psycopg2~=2.9.9
