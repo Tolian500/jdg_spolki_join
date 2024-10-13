@@ -10,13 +10,8 @@ from webdriver_manager.firefox import GeckoDriverManager
 import shutil
 import os
 import time
-import subprocess
 
-
-
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
-from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
-
+# import logging
 
 LONG_PAGE_DELAY = 2
 SHORT_PAGE_DELAY = 1
@@ -30,6 +25,13 @@ test_krs = '0000573610'
 
 test_krs_list = ['0000398281', '0000573610', '0000735160']
 
+
+# # Set up logging configuration
+# logging.basicConfig(
+#     filename='web_driver_log.txt',
+#     level=logging.DEBUG,  # Change to DEBUG for more detailed logging
+#     format='%(asctime)s - %(levelname)s - %(message)s'
+# )
 
 def time_it(func):
     """Decorator to time the execution of a function."""
@@ -45,39 +47,21 @@ def time_it(func):
 
 
 def initialize_driver():
-    # Define a different port for each script
-    port = 4445  # Change this for each instance
 
-    # Set paths
-    current_directory = os.getcwd()
-    geckodriver_path = os.path.join(current_directory, "geckodriver")  # Geckodriver will be installed here
-    firefox_binary_path = "/usr/bin/firefox"  # Update this to the correct path for Firefox binary
+    port = 4445
+    # Set directory to store the driver
+    driver_path = os.path.join(BASE_DIR, "geckodriver")
+    print("Geckodriver successfully founded")
 
     # Check if driver already exists, if not, install it
-    if not os.path.exists(geckodriver_path):
-        temp_geckodriver = GeckoDriverManager().install()
-        shutil.move(temp_geckodriver, geckodriver_path)
+    if not os.path.exists(driver_path):
+        driver_path = GeckoDriverManager().install()
 
-    # Start GeckoDriver using subprocess to capture real-time logs
-    log_file_path = os.path.join(current_directory, "geckodriver.log")
-
-    # Open a log file to capture geckodriver logs
-    with open(log_file_path, 'w') as log_file:
-        geckodriver_process = subprocess.Popen(
-            [geckodriver_path, "--log", "debug"],  # Use "trace" for even more detailed logs
-            stdout=log_file,
-            stderr=log_file
-        )
-
-    # Specify the Firefox binary path
-    firefox_binary = FirefoxBinary(firefox_binary_path)
-
-    # Initialize the Firefox service with the driver path
-    service = FirefoxService(executable_path=geckodriver_path, port=port)
+    # Initialize service with the driver path
+    service = FirefoxService(driver_path, port = port)
 
     # Set up Firefox options
     options = Options()
-    options.binary = firefox_binary
     options.set_preference("browser.download.folderList", 2)  # Use custom download directory
     options.set_preference("browser.download.dir", os.getcwd())  # Set download directory to current working directory
     options.set_preference("browser.download.panel.shown", False)  # Disable download panel
@@ -97,22 +81,12 @@ def initialize_driver():
     options.add_argument('--headless')
     print("Options for driver was set")
 
-    # Initialize WebDriver and point to running geckodriver process
-    print("Starting WebDriver...")
-    service = FirefoxService(executable_path=geckodriver_path)
+    # Initialize WebDriver
     try:
-        driver = webdriver.Remote(
-            command_executor='http://127.0.0.1:4444',
-            options=options
-        )
-        print("Driver successfully created")
+        driver = webdriver.Firefox(service=service, options=options)
     except Exception as e:
-        print(f"Error initializing driver: {e}")
-        # Display captured logs in case of error
-        with open(log_file_path, 'r') as log_file_read:
-            logs = log_file_read.read()
-            print(f"GeckoDriver logs:\n{logs}")
-        driver = None
+        print(f"Error while initialising driver: {e}")
+    print("Driver should be created")
     return driver
 
 
