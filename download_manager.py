@@ -50,14 +50,17 @@ def initialize_driver():
 
     # Check if driver already exists, if not, install it
     if not os.path.exists(geckodriver_path):
-        # Install geckodriver to the current directory
-        geckodriver_path = GeckoDriverManager(path=current_directory).install()
+        # Install geckodriver to the default location
+        temp_geckodriver = GeckoDriverManager().install()
 
+        # Move geckodriver to the current directory
+        shutil.move(temp_geckodriver, geckodriver_path)
+
+    # Specify the Firefox binary path
     firefox_binary = FirefoxBinary(firefox_binary_path)
 
-
-    # Initialize service with the driver path
-    service = FirefoxService(geckodriver_path)
+    # Initialize the Firefox service with the driver path
+    service = FirefoxService(executable_path=geckodriver_path)
 
     # Set up Firefox options
     options = Options()
