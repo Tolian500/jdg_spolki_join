@@ -11,7 +11,10 @@ import shutil
 import os
 import time
 
-# import logging
+
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+
 
 LONG_PAGE_DELAY = 2
 SHORT_PAGE_DELAY = 1
@@ -25,13 +28,6 @@ test_krs = '0000573610'
 
 test_krs_list = ['0000398281', '0000573610', '0000735160']
 
-
-# # Set up logging configuration
-# logging.basicConfig(
-#     filename='web_driver_log.txt',
-#     level=logging.DEBUG,  # Change to DEBUG for more detailed logging
-#     format='%(asctime)s - %(levelname)s - %(message)s'
-# )
 
 def time_it(func):
     """Decorator to time the execution of a function."""
@@ -48,15 +44,18 @@ def time_it(func):
 
 def initialize_driver():
     # Set directory to store the driver
-    driver_path = os.path.join(BASE_DIR, "geckodriver")
-    print("Geckodriver successfully founded")
+    geckodriver_path = "/home/tolian500/scripts/jdg_spolki_join/geckodriver"  # Update this to the correct path
+    firefox_binary_path = "/usr/bin/firefox"  # Update this to the correct path for Firefox binary
 
     # Check if driver already exists, if not, install it
-    if not os.path.exists(driver_path):
-        driver_path = GeckoDriverManager().install()
+    if not os.path.exists(geckodriver_path):
+        geckodriver_path = GeckoDriverManager().install()
+
+    firefox_binary = FirefoxBinary(firefox_binary_path)
+
 
     # Initialize service with the driver path
-    service = FirefoxService(driver_path)
+    service = FirefoxService(geckodriver_path)
 
     # Set up Firefox options
     options = Options()
