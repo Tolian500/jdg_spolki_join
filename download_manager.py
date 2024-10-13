@@ -43,13 +43,15 @@ def time_it(func):
 
 
 def initialize_driver():
-    # Set directory to store the driver
-    geckodriver_path = "/home/tolian500/scripts/jdg_spolki_join/geckodriver"  # Update this to the correct path
+    # Set the paths
+    current_directory = os.getcwd()
+    geckodriver_path = os.path.join(current_directory, "geckodriver")  # Geckodriver will be installed here
     firefox_binary_path = "/usr/bin/firefox"  # Update this to the correct path for Firefox binary
 
     # Check if driver already exists, if not, install it
     if not os.path.exists(geckodriver_path):
-        geckodriver_path = GeckoDriverManager().install()
+        # Install geckodriver to the current directory
+        geckodriver_path = GeckoDriverManager(path=current_directory).install()
 
     firefox_binary = FirefoxBinary(firefox_binary_path)
 
@@ -59,6 +61,7 @@ def initialize_driver():
 
     # Set up Firefox options
     options = Options()
+    options.binary = firefox_binary
     options.set_preference("browser.download.folderList", 2)  # Use custom download directory
     options.set_preference("browser.download.dir", os.getcwd())  # Set download directory to current working directory
     options.set_preference("browser.download.panel.shown", False)  # Disable download panel
