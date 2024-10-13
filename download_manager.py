@@ -10,6 +10,8 @@ from webdriver_manager.firefox import GeckoDriverManager
 import shutil
 import os
 import time
+import subprocess
+
 
 
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
@@ -43,20 +45,26 @@ def time_it(func):
 
 
 def initialize_driver():
-    # Set the paths
+    # Set paths
     current_directory = os.getcwd()
     geckodriver_path = os.path.join(current_directory, "geckodriver")  # Geckodriver will be installed here
     firefox_binary_path = "/usr/bin/firefox"  # Update this to the correct path for Firefox binary
-    log_file_path = os.path.join(current_directory, "geckodriver.log")  # Log file to capture geckodriver output
-
 
     # Check if driver already exists, if not, install it
     if not os.path.exists(geckodriver_path):
-        # Install geckodriver to the default location
         temp_geckodriver = GeckoDriverManager().install()
-
-        # Move geckodriver to the current directory
         shutil.move(temp_geckodriver, geckodriver_path)
+
+    # Start GeckoDriver using subprocess to capture real-time logs
+    log_file_path = os.path.join(current_directory, "geckodriver.log")
+
+    # Open a log file to capture geckodriver logs
+    with open(log_file_path, 'w') as log_file:
+        geckodriver_process = subprocess.Popen(
+            [geckodriver_path, "--log", "debug"],  # Use "trace" for even more detailed logs
+            stdout=log_file,
+            stderr=log_file
+        )
 
     # Specify the Firefox binary path
     firefox_binary = FirefoxBinary(firefox_binary_path)
@@ -86,15 +94,20 @@ def initialize_driver():
     options.add_argument('--headless')
     print("Options for driver was set")
 
-    # Initialize WebDriver and capture the logs
+    # Initialize WebDriver and point to running geckodriver process
+    print("Starting WebDriver...")
+    service = FirefoxService(executable_path=geckodriver_path)
     try:
         driver = webdriver.Firefox(service=service, options=options)
         print("Driver successfully created")
     except Exception as e:
-        print(f"Error while initializing driver: {e}")
-        with open(log_file_path, 'r') as log_file:
-            gecko_logs = log_file.read()
-            print("GeckoDriver logs:\n", gecko_logs)
+        print(f"Error initializing driver: {e}")
+        # Display captured logs in case of error
+        with open(log_file_path, 'r') as log_file_read:
+            logs = log_file_read.read()
+            print(f"GeckoDriver logs:\n{logs}")
+        driver = None
+    return driver
 
 
 def download_file(driver, curr_krs, cur_index: int):
