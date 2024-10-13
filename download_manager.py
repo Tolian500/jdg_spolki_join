@@ -45,6 +45,9 @@ def time_it(func):
 
 
 def initialize_driver():
+    # Define a different port for each script
+    port = 4445  # Change this for each instance
+
     # Set paths
     current_directory = os.getcwd()
     geckodriver_path = os.path.join(current_directory, "geckodriver")  # Geckodriver will be installed here
@@ -70,7 +73,7 @@ def initialize_driver():
     firefox_binary = FirefoxBinary(firefox_binary_path)
 
     # Initialize the Firefox service with the driver path
-    service = FirefoxService(executable_path=geckodriver_path)
+    service = FirefoxService(executable_path=geckodriver_path, port=port)
 
     # Set up Firefox options
     options = Options()
