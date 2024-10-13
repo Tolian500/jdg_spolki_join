@@ -47,6 +47,8 @@ def initialize_driver():
     current_directory = os.getcwd()
     geckodriver_path = os.path.join(current_directory, "geckodriver")  # Geckodriver will be installed here
     firefox_binary_path = "/usr/bin/firefox"  # Update this to the correct path for Firefox binary
+    log_file_path = os.path.join(current_directory, "geckodriver.log")  # Log file to capture geckodriver output
+
 
     # Check if driver already exists, if not, install it
     if not os.path.exists(geckodriver_path):
@@ -84,13 +86,15 @@ def initialize_driver():
     options.add_argument('--headless')
     print("Options for driver was set")
 
-    # Initialize WebDriver
+    # Initialize WebDriver and capture the logs
     try:
         driver = webdriver.Firefox(service=service, options=options)
+        print("Driver successfully created")
     except Exception as e:
-        print(f"Error while initialising driver: {e}")
-    print("Driver should be created")
-    return driver
+        print(f"Error while initializing driver: {e}")
+        with open(log_file_path, 'r') as log_file:
+            gecko_logs = log_file.read()
+            print("GeckoDriver logs:\n", gecko_logs)
 
 
 def download_file(driver, curr_krs, cur_index: int):
