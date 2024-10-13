@@ -98,7 +98,10 @@ def initialize_driver():
     print("Starting WebDriver...")
     service = FirefoxService(executable_path=geckodriver_path)
     try:
-        driver = webdriver.Firefox(service=service, options=options)
+        driver = webdriver.Remote(
+            command_executor='http://127.0.0.1:4444',
+            options=options
+        )
         print("Driver successfully created")
     except Exception as e:
         print(f"Error initializing driver: {e}")
