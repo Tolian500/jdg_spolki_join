@@ -20,6 +20,8 @@ MAX_ATTEMPTS = 5  # Maximum number of retry attempts
 RETRY_DELAY = 2  # Time to wait before retrying after being blocked
 YEAR_LIMITER = 1
 
+PORT = 4446
+
 URL = 'https://wyszukiwarka-krs.ms.gov.pl/'
 test_krs = '0000573610'
 
@@ -56,7 +58,7 @@ def initialize_driver():
         driver_path = GeckoDriverManager().install()
 
     # Initialize service with the driver path
-    service = FirefoxService(driver_path)
+    service = FirefoxService(driver_path, port=PORT)
 
     # Set up Firefox options
     options = Options()
