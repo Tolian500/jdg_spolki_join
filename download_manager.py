@@ -20,7 +20,6 @@ MAX_ATTEMPTS = 5  # Maximum number of retry attempts
 RETRY_DELAY = 2  # Time to wait before retrying after being blocked
 YEAR_LIMITER = 1
 
-PORT = 4446
 
 URL = 'https://wyszukiwarka-krs.ms.gov.pl/'
 test_krs = '0000573610'
@@ -49,6 +48,8 @@ def time_it(func):
 
 
 def initialize_driver():
+
+    port = 4445
     # Set directory to store the driver
     driver_path = os.path.join(BASE_DIR, "geckodriver")
     print("Geckodriver successfully founded")
@@ -58,7 +59,10 @@ def initialize_driver():
         driver_path = GeckoDriverManager().install()
 
     # Initialize service with the driver path
-    service = FirefoxService(driver_path, port=PORT)
+
+
+    service = FirefoxService(driver_path, port = port)
+
 
     # Set up Firefox options
     options = Options()
