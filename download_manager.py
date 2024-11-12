@@ -10,6 +10,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 import shutil
 import os
 import time
+import logging
 
 # import logging
 
@@ -51,7 +52,7 @@ def initialize_driver():
 
     port = 4445
     # Set directory to store the driver
-    driver_path = os.path.join(BASE_DIR, "geckodriver")
+    driver_path = "/home/tolian500/scripts/jdg_spolki_join/geckodriver"
     print("Geckodriver successfully founded")
 
     # Check if driver already exists, if not, install it
@@ -61,7 +62,7 @@ def initialize_driver():
     # Initialize service with the driver path
 
 
-    service = FirefoxService(driver_path, port = port)
+    service = FirefoxService(driver_path, port = port, log_output=os.path.join(BASE_DIR, "geckodriver.log"))
 
 
     # Set up Firefox options
