@@ -89,10 +89,12 @@ def initialize_driver():
     # Initialize WebDriver
     try:
         driver = webdriver.Firefox(service=service, options=options)
+        print("Driver should be created")
+        return driver
     except Exception as e:
         print(f"Error while initialising driver: {e}")
-    print("Driver should be created")
-    return driver
+
+
 
 
 def download_file(driver, curr_krs, cur_index: int):
